@@ -7,7 +7,7 @@ from gtts import gTTS
 from playsound import  playsound
 import os
 import socket
-
+import mysql.connector
 
 root = Tk()
 root.title("client")
@@ -17,6 +17,14 @@ frame=Label(root,image=img)
 frame.place(x=0,y=0)
 lancode=""
 lancode2=""
+
+mydb = mysql.connector.connect(
+host="localhost",
+user="root",
+password="Satvik@1312",
+database="suryaclient"
+)
+mycursor = mydb.cursor()
 
 LANGUAGES = {
 'afrikaans': 'af','albanian': 'sq','amharic': 'am', 'arabic': 'ar', 'armenian': 'hy','azerbaijani': 'az',
@@ -40,17 +48,25 @@ LANGUAGES = {
 import threading
 s1=socket.socket()
 
-
-jio=""
 def rec():
-    global jio
+    global LABEL11
     while True:
+        j=[]
         jio = s1.recv(1024).decode()
+        j.append(jio)
+        query=("INSERT INTO recording_client (message) VALUES (%s)")
+        data=(j)
+        mycursor.execute(query,data)
+        mydb.commit()
+
         frame=Frame(root,bg='white',height=100,width=150)
         frame.place(x=100,y=250)
+
         LABEL11=Label(frame,text="Recive a Message",font=('calibre',12))
         LABEL11.place(x=10,y=10)
+
         root.after(1500,frame.destroy)
+
 def sumbit_ip():
     global s1
     ip1=name_entry3.get()
@@ -117,7 +133,9 @@ def ok():
 
 button5 = Button(root, text="OK", command=ok)
 button5.place(x=790,y=393)
+
 # for input language
+
 varible_output=StringVar(root)
 varible_output.set(OPTION[20])
 var_out=OptionMenu(root,varible_output,*OPTION)
@@ -135,26 +153,34 @@ button6 = Button(root, text="OK", command=ok2)
 button6.place(x=170,y=393)
 
 
-
-
-
-    
-
-
-#for output language 
+#for output language
+ 
 def translate_text():
-    global lancode,s,jio
+    global lancode,s
     if lancode=="":
         lancode="en"
     # text1=jio
     
     root.update()
-    print(jio)
+    
+    mycursor.execute("SELECT message FROM recording_client LIMIT 1;")
+    messin=mycursor.fetchall()
+
+   
+    mycursor.execute("DELETE FROM recording_client LIMIT 1;")
+    mydb.commit()
+
+    print(messin)
+    for i in messin:
+        my_text=i
+    print(my_text)
+
     root.update()
     translator= Translator()
-    lang2= translator.translate(jio, dest = lancode)
+    lang2= translator.translate(my_text, dest = lancode)
     b=lang2.text
     print(b)
+
     myvoice=gTTS(text=b,lang=lancode,slow=False) 
     myvoice.save("surya1.mp3")
     playsound("surya1.mp3")
