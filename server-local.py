@@ -9,6 +9,8 @@ import os
 import socket
 from threading import Thread
 import random
+import mysql.connector
+
 
 root = Tk()
 root.title("..server..")
@@ -41,6 +43,15 @@ LANGUAGES = {
 }
 
 s1=socket.socket()
+
+#database connection
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="Satvik@1312",
+  database="surya"
+)
+mycursor = mydb.cursor()
 
 def server():
     global con
@@ -86,6 +97,7 @@ varible_input=StringVar(root)
 varible_input.set(OPTION[20])
 var_inp=OptionMenu(root,varible_input,*OPTION)
 var_inp.place(x=700,y=390)
+
 def ok():
     global lancode2
     lan2=varible_input.get()
@@ -96,7 +108,7 @@ def ok():
     else:
         print("language is not present in dictonary")   
 
-
+        
 button5 = Button(root, text="OK", command=ok)
 button5.place(x=790,y=393)
 # for input language
@@ -119,11 +131,18 @@ button6.place(x=170,y=393)
 label10=Label(root,text="",font=("calibre",12))
 label10.place(x=100,y=200)
 
-jio=""
 def rec():
-    global jio
     while True:
+        j=[]
         jio= con.recv(1024).decode()
+        j.append(jio)
+
+        query=("INSERT INTO recording_server (message) VALUES (%s)")
+        data=(j)
+        mycursor.execute(query,data)
+        mydb.commit()
+
+
         frame=Frame(root,bg='white',height=100,width=150)
         frame.place(x=100,y=250)
         LABEL11=Label(frame,text="Recive a Message",font=('calibre',12))
@@ -131,14 +150,27 @@ def rec():
         root.after(1500,frame.destroy)
 
 def translate_text():
-    global lancode,con,jio
+    global lancode,con
     if lancode=="":
         lancode="en"   
     root.update()
-    print(jio)
+
+    mycursor.execute("SELECT message FROM recording_server LIMIT 1;")
+    messin = mycursor.fetchall()
+
+
+    mycursor.execute("DELETE FROM recording_server LIMIT 1;")
+    mydb.commit()
+
+    print(messin)
+
+    for i in messin:
+        my_text=i
+    print(my_text)
+
     root.update()
     translator= Translator()
-    lang2= translator.translate(jio, dest = lancode)
+    lang2= translator.translate(my_text,dest = lancode)
     b=lang2.text
     print(b)
     myvoice=gTTS(text=b,lang=lancode,slow=False) 
@@ -157,7 +189,6 @@ def translate_text():
             print("file not found")
     except Exception as e:
         print("The error is :",e)
-
 
 def voice_record_and_text():
     global inputvoice,con,lancode2
